@@ -7,7 +7,7 @@ This repository provides reusable templates, frameworks, and examples for implem
 - `templates/`: Ready-to-use templates for schema contracts, SLAs, and access policies
 - `frameworks/`: Governance models for metadata, lifecycle, and stewardship
 - `examples/`: Real-world implementations across Azure, Fabric, and Databricks
-- 'resources/': Reading lists, tools, and more
+- `resources/`: Reading lists, tools, and more
 
 ## 🎯 Why It Matters
 
