@@ -1,0 +1,1431 @@
+# ============================================
+# Workday Future Worker Demographics Data Contract  
+# File: /lakehouse/default/Files/contracts/workday_future_worker_demographics.yaml
+# Following datacontract.com v1.2.0 specification
+# ============================================
+
+dataContractSpecification: 1.2.0
+id: workday_hr_future_worker_demographics_v1.0
+
+info:
+  title: Workday Future Worker Demographics
+  version: 1.0.0
+  status: active
+  description: |
+    Comprehensive employee demographic, employment, and organizational data extracted from Workday HCM.
+    Dataset includes current and historical employee records with enhanced security and masking of PII.
+    Used for HR operations, EEO compliance, workforce analytics, and organizational planning.
+  owner: HCM Domain
+  contact:
+    name: Enterprise Data Hub team
+    email: datahub@uark.edu
+    url: https://help.uark.edu
+
+# Server Configuration - Medallion Architecture + Environment Segregation
+servers:
+  # Medallion Architecture Layers
+  bronze:
+    type: azure
+    environment: prod
+    location: abfss://lakehouse@edhdatalakestg.dfs.core.windows.net/Tables/bronze/workday_future_worker_demographics
+    format: delta
+    rbac_enforced: true
+    contract_scope: ["ingestion", "dq_ingest"]
+    description: "Raw data ingestion layer with basic validation and processing timestamps"
+    
+  silver:
+    type: azure
+    environment: prod
+    location: abfss://lakehouse@edhdatalakestg.dfs.core.windows.net/Tables/silver/workday_future_worker_demographics
+    format: delta
+    rbac_enforced: true
+    contract_scope: ["schema", "masking", "roles", "dq_domain"]
+    purview_register: true
+    description: "Cleansed and transformed data with business rules applied and role-based masking"
+    
+  gold:
+    type: azure
+    environment: prod
+    location: abfss://lakehouse@edhdatalakestg.dfs.core.windows.net/Tables/gold/hr_analytics/*
+    format: delta
+    rbac_enforced: true
+    contract_scope: ["consumption", "certification"]
+    purview_register: true
+    description: "Business-ready analytics datasets and dimensional models"
+    
+  # Environment Segregation
+  dev:
+    type: fabric
+    environment: dev
+    location: lakehouse/dev/sampled/workday_future_worker_demographics
+    format: delta
+    rbac_enforced: true
+    allowed_roles: ["datahub-general", "datahub-troubleshooting"]
+    sampling_policy: "minimal_required_for_dev"
+    retention: P14D
+    description: "Development environment with minimal sampled data for pipeline development"
+    
+  qa:
+    type: fabric
+    environment: qa
+    location: lakehouse/qa/sampled/workday_future_worker_demographics
+    format: delta
+    rbac_enforced: true
+    allowed_roles: ["datahub-general", "datahub-troubleshooting"]
+    sampling_policy: "subset_for_testing"
+    retention: P30D
+    description: "QA environment with representative data subset for testing and validation"
+    
+  prod:
+    type: fabric
+    environment: prod
+    location: lakehouse/prod/silver/workday_future_worker_demographics
+    format: delta
+    rbac_enforced: true
+    allowed_roles: ["hcm-employee-detailed", "hcm-employee-enhanced", "UARK-staff"]
+    retention: governed
+    description: "Production environment with full dataset and complete access control enforcement"
+
+# Roles (Standard spec - University Security Groups)
+roles:
+  - name: hcm-employee-summary
+    description: Organizational analytics only - aggregated data with statistical disclosure controls, no individual records
+  - name: hcm-employee-detailed  
+    description: HR analytics with privacy protection - individual records with strong PII masking and last 4 digits of identifiers
+  - name: hcm-employee-enhanced
+    description: Compliance and specialized HR functions - enhanced demographic access for EEO reporting, no SSN access but last 4 visible
+  - name: datahub-general
+    description: Technical operations - basic data for pipeline operations with minimal PII exposure
+  - name: datahub-troubleshooting
+    description: Data quality diagnosis - enhanced technical visibility for debugging including last 4 of SSN, respects privacy boundaries
+  - name: UARK-staff
+    description: Public directory equivalent - work-related contact info only, respects privacy flags, active employees only
+
+# Terms (Standard spec - enhanced for HR/PII data)
+terms:
+  usage: |
+    This data is provided for legitimate university business purposes including:
+    - Human resources operations and workforce management
+    - EEO compliance reporting and diversity analytics
+    - Institutional research and organizational planning
+    - Compensation analysis and benchmarking studies
+    - Workforce trends and demographic analysis
+    - Federal and state regulatory compliance reporting
+    
+    Data may only be used for legitimate educational and business interests as defined by 
+    university employment policies and applicable federal regulations including FERPA, EEO requirements,
+    and privacy protection standards.
+    
+    Access restricted to authorized university personnel using Microsoft Entra authentication with
+    additional approval required for compensation and demographic analytics. Employee identifiers 
+    completely removed for standard analytics consumption. Enhanced security groups may access 
+    limited demographic data for EEO reporting following least privilege principles.
+  limitations: |
+    - Data access restricted to authorized university personnel using Microsoft Entra authentication
+    - PII and demographic data access requires specific business justification and approval  
+    - Salary and compensation data completely restricted except for authorized compensation analytics groups
+    - SSN and personal contact information subject to enhanced role-based masking
+    - No data transmission outside university-approved cloud environments without encryption
+    - Retention periods must comply with employment record retention and applicable regulatory requirements
+    - Third-party sharing requires prior approval and appropriate data use agreements
+  billing: No cost - internal university data
+  noticePeriod: P30D
+  policies:
+    - name: ferpa
+      description: "Family Educational Rights and Privacy Act (FERPA) - applies to employee educational records"
+      url: "https://www2.ed.gov/policy/gen/guid/fpco/ferpa/index.html"
+    - name: eeoc
+      description: "Equal Employment Opportunity Commission (EEOC) reporting requirements"
+      url: "https://www.eeoc.gov/employers/reporting"
+    - name: adaaa
+      description: "Americans with Disabilities Act Amendments Act (ADAAA)"
+      url: "https://www.eeoc.gov/laws/guidance/questions-and-answers-amendments-act-2008"
+    - name: flsa
+      description: "Fair Labor Standards Act (FLSA) - wage and hour requirements"
+      url: "https://www.dol.gov/agencies/whd/flsa"
+    - name: nist-sp-800-53
+      description: "NIST SP 800-53 Security and Privacy Controls for Federal Information Systems"
+      url: "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final"
+
+# Schema Definition
+models:
+  workday_future_worker_demographics:
+    description: |
+      Bronze layer table containing raw Workday employee demographics data with enhanced 
+      role-based security masking. Preserves exact source field names and JSON structure 
+      from Workday extraction.
+    type: table
+    
+    fields:
+      # Core Employee Identity Fields
+      EMPLOYEE_ID:
+        type: string
+        description: Primary employee identifier from Workday
+        required: true
+        primaryKey: true
+        classification: highly sensitive
+        pii: true
+        tags: ["identifier", "pii", "core"]
+        
+      UNIVERSAL_ID:
+        type: string
+        description: Universal employee identifier across systems
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["identifier", "pii"]
+        
+      # Legal Name Fields
+      LEGAL_FIRST_NAME:
+        type: string
+        description: Employee legal first name
+        required: true
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "name", "core"]
+        
+      LEGAL_MIDDLE_NAME:
+        type: string
+        description: Employee legal middle name
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "name"]
+        
+      LEGAL_LAST_NAME:
+        type: string
+        description: Employee legal last name
+        required: true
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "name", "core"]
+        
+      SUFFIX:
+        type: string
+        description: Name suffix (Jr., Sr., III, etc.)
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["name", "pii"]
+        
+      PREFIX:
+        type: string
+        description: Name prefix (Dr., Prof., etc.)
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["name", "pii"]
+        
+      # Preferred Name Fields  
+      PREFERRED_FIRST_NAME:
+        type: string
+        description: Employee preferred first name
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "name", "preferred"]
+        
+      PREFERRED_MIDDLE_NAME:
+        type: string
+        description: Employee preferred middle name
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "name", "preferred"]
+        
+      PREFERRED_LAST_NAME:
+        type: string
+        description: Employee preferred last name
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "name", "preferred"]
+        
+      PREFERRED_NAME:
+        type: string
+        description: Full preferred name display format
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "name", "preferred"]
+        
+      PREFERRED_NAME_PREFIX:
+        type: string
+        description: Preferred name prefix
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["name", "preferred", "pii"]
+        
+      PREFERRED_NAME_SUFFIX:
+        type: string
+        description: Preferred name suffix
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["name", "preferred", "pii"]
+        
+      # Personal Information - Highly Sensitive
+      SSN:
+        type: string
+        description: Social Security Number - encrypted and heavily masked
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "sensitive", "identifier", "restricted_access"]
+        
+      DOB:
+        type: date
+        description: Date of birth
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "sensitive", "demographic", "restricted_access"]
+        
+      GENDER:
+        type: string
+        description: Gender identification
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["demographic", "eeo", "pii"]
+        
+      PRIMARY_NATIONALITY:
+        type: string
+        description: Primary nationality/citizenship
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["demographic", "pii"]
+        
+      # Contact Information
+      WORK_EMAIL:
+        type: string
+        description: Primary work email address
+        required: false
+        classification: sensitive
+        pii: true
+        format: email
+        tags: ["pii", "contact", "work", "directory"]
+        quality:
+          - type: sql
+            description: Work email should be uark.edu domain
+            query: |
+              SELECT COUNT(*) 
+              FROM {table} 
+              WHERE WORK_EMAIL IS NOT NULL AND WORK_EMAIL NOT LIKE '%@uark.edu'
+            mustBe: 0
+        
+      PRIMARY_WORK_EMAIL_PRIVATE:
+        type: boolean
+        description: Indicates if work email is marked private
+        required: false
+        classification: sensitive
+        tags: ["privacy_flag", "work"]
+        
+      HOME_EMAIL:
+        type: string
+        description: Personal/home email address
+        required: false
+        classification: highly sensitive
+        pii: true
+        format: email
+        tags: ["pii", "contact", "personal", "sensitive"]
+        
+      PRIMARY_HOME_EMAIL_PRIVATE:
+        type: boolean
+        description: Indicates if home email is marked private
+        required: false
+        classification: highly sensitive
+        tags: ["privacy_flag", "personal"]
+        
+      CROSS_COMPANY_AFFILIATION_EMAIL:
+        type: string
+        description: Cross-company affiliation email
+        required: false
+        classification: highly sensitive
+        pii: true
+        format: email
+        tags: ["pii", "contact", "work"]
+        
+      CROSS_COMPANY_AFFILIATION_EMAIL_PRIVATE:
+        type: boolean
+        description: Privacy flag for cross-company email
+        required: false
+        classification: sensitive
+        tags: ["privacy_flag", "work"]
+        
+      # Phone Numbers
+      HOME_PHONE:
+        type: string
+        description: Personal home phone number
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "contact", "personal", "sensitive"]
+        
+      HOME_PHONE_PRIVATE:
+        type: boolean
+        description: Privacy flag for home phone
+        required: false
+        classification: highly sensitive
+        tags: ["privacy_flag", "personal"]
+        
+      MOBILE_PHONE:
+        type: string
+        description: Personal mobile phone number
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "contact", "personal", "sensitive", "directory"]
+        
+      MOBILE_PHONE_PRIVATE:
+        type: boolean
+        description: Privacy flag for mobile phone
+        required: false
+        classification: highly sensitive
+        tags: ["privacy_flag", "personal"]
+        
+      WORK_PHONE:
+        type: string
+        description: Work phone number
+        required: false
+        classification: sensitive
+        pii: true
+        tags: ["pii", "contact", "work", "directory"]
+        
+      WORK_PHONE_PRIVATE:
+        type: boolean
+        description: Privacy flag for work phone
+        required: false
+        classification: sensitive
+        tags: ["privacy_flag", "work"]
+        
+      # Address Information
+      HOME_ADDRESS_LINE1:
+        type: string
+        description: Home address line 1
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "address", "personal", "sensitive"]
+        
+      HOME_ADDRESS_LINE2:
+        type: string
+        description: Home address line 2
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "address", "personal", "sensitive"]
+        
+      HOME_ADDRESS_CITY:
+        type: string
+        description: Home address city
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "address", "personal", "sensitive"]
+        
+      HOME_ADDRESS_STATE:
+        type: string
+        description: Home address state/province
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "address", "personal", "sensitive"]
+        
+      HOME_ADDRESS_POSTAL_CODE:
+        type: string
+        description: Home address postal/zip code
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "address", "personal", "sensitive"]
+        
+      HOME_ADDRESS_COUNTRY:
+        type: string
+        description: Home address country
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["pii", "address", "personal", "sensitive"]
+        
+      WORK_ADDRESS_LINE1:
+        type: string
+        description: Work address line 1
+        required: false
+        classification: sensitive
+        tags: ["address", "work", "directory"]
+        
+      WORK_ADDRESS_LINE2:
+        type: string
+        description: Work address line 2
+        required: false
+        classification: sensitive
+        tags: ["address", "work", "directory"]
+        
+      WORK_ADDRESS_CITY:
+        type: string
+        description: Work address city
+        required: false
+        classification: sensitive
+        tags: ["address", "work", "directory"]
+        
+      WORK_ADDRESS_STATE:
+        type: string
+        description: Work address state/province
+        required: false
+        classification: sensitive
+        tags: ["address", "work", "directory"]
+        
+      WORK_ADDRESS_POSTAL_CODE:
+        type: string
+        description: Work address postal/zip code
+        required: false
+        classification: sensitive
+        tags: ["address", "work", "directory"]
+        
+      WORK_ADDRESS_COUNTRY:
+        type: string
+        description: Work address country
+        required: false
+        classification: sensitive
+        tags: ["address", "work", "directory"]
+        
+      # Ethnicity and Demographic Information
+      ETHNICITY:
+        type: string
+        description: Primary ethnicity designation
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["demographic", "eeo", "diversity", "pii"]
+        
+      IS_ETHNICITY_AMERICAN_INDIAN_OR_ALASKA_NATIVE:
+        type: boolean
+        description: American Indian or Alaska Native ethnicity flag
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["demographic", "eeo", "diversity", "pii"]
+        
+      IS_ETHNICITY_ASIAN:
+        type: boolean
+        description: Asian ethnicity flag
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["demographic", "eeo", "diversity", "pii"]
+        
+      IS_ETHNICITY_BLACK_OR_AFRICAN_AMERICAN:
+        type: boolean
+        description: Black or African American ethnicity flag
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["demographic", "eeo", "diversity", "pii"]
+        
+      IS_ETHNICITY_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER:
+        type: boolean
+        description: Native Hawaiian or Other Pacific Islander ethnicity flag
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["demographic", "eeo", "diversity", "pii"]
+        
+      IS_ETHNICITY_WHITE:
+        type: boolean
+        description: White ethnicity flag
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["demographic", "eeo", "diversity", "pii"]
+        
+      IS_ETHNICITY_HISPANIC:
+        type: boolean
+        description: Hispanic ethnicity flag
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["demographic", "eeo", "diversity", "pii"]
+        
+      # Employment Information
+      IS_PRIMARY_JOB:
+        type: boolean
+        description: Indicates if this is the employee's primary position
+        required: false
+        classification: sensitive
+        tags: ["employment", "position"]
+        
+      EMPLOYEE_TYPE:
+        type: string
+        description: Type of employee (Faculty, Staff, etc.)
+        required: false
+        classification: sensitive
+        tags: ["employment", "classification", "core", "directory"]
+        
+      STATUS:
+        type: string
+        description: Employment status (Active, Terminated, etc.)
+        required: false
+        classification: sensitive
+        tags: ["employment", "status", "core"]
+        
+      IS_CONTINGENT_WORKER:
+        type: boolean
+        description: Flag indicating contingent worker status
+        required: false
+        classification: sensitive
+        tags: ["employment", "classification"]
+        
+      CONTINGENT_WORKER_TYPE:
+        type: string
+        description: Type of contingent worker if applicable
+        required: false
+        classification: sensitive
+        tags: ["employment", "classification"]
+        
+      IS_WORK_STUDY_STUDENT:
+        type: boolean
+        description: Flag indicating work-study student status
+        required: false
+        classification: sensitive
+        tags: ["employment", "classification", "student"]
+        
+      # Employment Dates
+      HIRE_DATE:
+        type: date
+        description: Most recent hire date
+        required: false
+        classification: sensitive
+        tags: ["employment", "dates", "core"]
+        quality:
+          - type: sql
+            description: Hire date cannot be in the future
+            query: |
+              SELECT COUNT(*) 
+              FROM {table} 
+              WHERE HIRE_DATE > CURRENT_DATE
+            mustBe: 0
+        
+      ORIGINAL_HIRE_DATE:
+        type: date
+        description: Original hire date with organization
+        required: false
+        classification: sensitive
+        tags: ["employment", "dates"]
+        
+      TERMINATION_DATE:
+        type: date
+        description: Employment termination date if applicable
+        required: false
+        classification: sensitive
+        tags: ["employment", "dates", "status"]
+        quality:
+          - type: sql
+            description: Termination date must be after hire date
+            query: |
+              SELECT COUNT(*) 
+              FROM {table} 
+              WHERE TERMINATION_DATE IS NOT NULL 
+                AND HIRE_DATE IS NOT NULL 
+                AND TERMINATION_DATE < HIRE_DATE
+            mustBe: 0
+        
+      TERMINATION_REASON:
+        type: string
+        description: Reason for termination
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["employment", "status", "sensitive", "pii"]
+        
+      TERMINATION_REASON_ID:
+        type: string
+        description: Workday ID for termination reason
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["employment", "status", "identifier", "pii"]
+        
+      RETIREMENT_DATE:
+        type: date
+        description: Planned or actual retirement date
+        required: false
+        classification: sensitive
+        tags: ["employment", "dates"]
+        
+      END_EMPLOYMENT_DATE:
+        type: date
+        description: Final employment end date
+        required: false
+        classification: sensitive
+        tags: ["employment", "dates"]
+        
+      # Service Information
+      COMPANY_SERVICE_DATE:
+        type: date
+        description: Service date for company benefits calculation
+        required: false
+        classification: sensitive
+        tags: ["employment", "service", "benefits"]
+        
+      TIME_OFF_SERVICE_DATE:
+        type: date
+        description: Service date for time-off accrual calculation
+        required: false
+        classification: sensitive
+        tags: ["employment", "service", "benefits"]
+        
+      YEARS_OF_SERVICE:
+        type: int
+        description: Calculated years of service
+        required: false
+        classification: sensitive
+        tags: ["employment", "service", "calculated"]
+        
+      VESTING_DATE:
+        type: date
+        description: Benefits vesting date
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["employment", "benefits", "compensation", "pii"]
+        
+      # Organizational Assignment
+      ORGANIZATION_ID:
+        type: string
+        description: Primary organizational unit ID
+        required: false
+        classification: sensitive
+        tags: ["organization", "identifier"]
+        
+      ORGANIZATION_NAME:
+        type: string
+        description: Primary organizational unit name
+        required: false
+        classification: sensitive
+        tags: ["organization", "core", "directory"]
+        
+      SUPERVISORY_ORGANIZATION_ID:
+        type: string
+        description: Supervisory organization unit ID
+        required: false
+        classification: sensitive
+        tags: ["organization", "identifier", "hierarchy"]
+        
+      SUPERVISORY_ORGANIZATION_NAME:
+        type: string
+        description: Supervisory organization unit name
+        required: false
+        classification: sensitive
+        tags: ["organization", "hierarchy", "directory"]
+        
+      # Manager Information
+      MANAGER_EMPLOYEE_ID:
+        type: string
+        description: Direct manager's employee ID
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["management", "identifier", "hierarchy", "pii"]
+        
+      MANAGERS_MANAGER_EMPLOYEE_ID:
+        type: string
+        description: Manager's manager employee ID
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["management", "identifier", "hierarchy", "pii"]
+        
+      # Position Information
+      POSITION_ID:
+        type: string
+        description: Workday position identifier
+        required: false
+        classification: sensitive
+        tags: ["position", "identifier"]
+        
+      POSITION_TITLE:
+        type: string
+        description: Official position title
+        required: false
+        classification: sensitive
+        tags: ["position", "core", "directory"]
+        
+      JOB_PROFILE_ID:
+        type: string
+        description: Workday job profile identifier
+        required: false
+        classification: sensitive
+        tags: ["position", "identifier", "job_profile"]
+        
+      JOB_PROFILE_NAME:
+        type: string
+        description: Job profile name/title
+        required: false
+        classification: sensitive
+        tags: ["position", "job_profile", "directory"]
+        
+      # Job Classifications
+      IS_JOB_CLASS_EXEC_ADMIN_MANG:
+        type: boolean
+        description: Executive/Administrative/Managerial job class flag
+        required: false
+        classification: sensitive
+        tags: ["job_classification", "eeo", "management"]
+        
+      IS_JOB_CLASS_FACULTY:
+        type: boolean
+        description: Faculty job class flag
+        required: false
+        classification: sensitive
+        tags: ["job_classification", "eeo", "faculty"]
+        
+      IS_JOB_CLASS_PROFESSIONAL:
+        type: boolean
+        description: Professional job class flag
+        required: false
+        classification: sensitive
+        tags: ["job_classification", "eeo"]
+        
+      IS_JOB_CLASS_CLERICAL_SECRETARIAL:
+        type: boolean
+        description: Clerical/Secretarial job class flag
+        required: false
+        classification: sensitive
+        tags: ["job_classification", "eeo"]
+        
+      IS_JOB_CLASS_TECH_PARAPROFESSIONAL:
+        type: boolean
+        description: Technical/Paraprofessional job class flag
+        required: false
+        classification: sensitive
+        tags: ["job_classification", "eeo"]
+        
+      IS_JOB_CLASS_SKILLED_CRAFTS:
+        type: boolean
+        description: Skilled Crafts job class flag
+        required: false
+        classification: sensitive
+        tags: ["job_classification", "eeo"]
+        
+      IS_JOB_CLASS_SERVICE_MAINTENANCE:
+        type: boolean
+        description: Service/Maintenance job class flag
+        required: false
+        classification: sensitive
+        tags: ["job_classification", "eeo"]
+        
+      # Academic Flags
+      CHAIR:
+        type: boolean
+        description: Department chair flag
+        required: false
+        classification: sensitive
+        tags: ["academic", "leadership", "faculty"]
+        
+      ADVISOR:
+        type: boolean
+        description: Academic advisor flag
+        required: false
+        classification: sensitive
+        tags: ["academic", "faculty"]
+        
+      FACULTY:
+        type: boolean
+        description: Faculty status flag
+        required: false
+        classification: sensitive
+        tags: ["academic", "faculty", "core", "directory"]
+        
+      STAFF:
+        type: boolean
+        description: Staff status flag
+        required: false
+        classification: sensitive
+        tags: ["academic", "staff", "core", "directory"]
+        
+      HAS_TENURE:
+        type: boolean
+        description: Tenure status flag
+        required: false
+        classification: sensitive
+        tags: ["academic", "faculty", "tenure"]
+        
+      IS_EMERITUS:
+        type: boolean
+        description: Emeritus status flag
+        required: false
+        classification: sensitive
+        tags: ["academic", "faculty", "emeritus"]
+        
+      # Compensation Information
+      TOTAL_BASE_PAY_ANNUALIZED:
+        type: decimal
+        description: Total base pay annualized amount - restricted to compensation analysts only
+        required: false
+        classification: highly sensitive
+        pii: true
+        precision: 15
+        scale: 2
+        tags: ["compensation", "sensitive", "restricted_access", "financial", "pii"]
+        
+      HOURLY_RATE_AMOUNT:
+        type: decimal
+        description: Hourly rate for hourly employees - restricted to compensation analysts only
+        required: false
+        classification: highly sensitive
+        pii: true
+        precision: 10
+        scale: 2
+        tags: ["compensation", "sensitive", "restricted_access", "financial", "pii"]
+        
+      PAY_RATE_TYPE:
+        type: string
+        description: Type of pay rate (Salary, Hourly, etc.)
+        required: false
+        classification: highly sensitive
+        pii: true
+        tags: ["compensation", "employment", "pii"]
+        
+      PAY_GROUP:
+        type: string
+        description: Payroll group designation
+        required: false
+        classification: sensitive
+        tags: ["compensation", "payroll"]
+        
+      FTE:
+        type: decimal
+        description: Full-time equivalency percentage
+        required: false
+        classification: sensitive
+        precision: 5
+        scale: 4
+        tags: ["employment", "fte", "core"]
+        quality:
+          - type: sql
+            description: FTE must be between 0.0 and 1.0
+            query: |
+              SELECT COUNT(*) 
+              FROM {table} 
+              WHERE FTE IS NOT NULL AND (FTE < 0.0 OR FTE > 1.0)
+            mustBe: 0
+        
+      SCHEDULED_WEEKLY_HOURS:
+        type: decimal
+        description: Scheduled weekly work hours
+        required: false
+        classification: sensitive
+        precision: 5
+        scale: 2
+        tags: ["employment", "schedule"]
+        
+      # Audit and Processing Fields
+      _processing_timestamp:
+        type: timestamp
+        description: Processing watermark timestamp added during ingestion
+        required: false
+        classification: sensitive
+        tags: ["audit", "system", "processing"]
+        
+      _source_file_name:
+        type: string
+        description: Source file name from blob storage
+        required: false
+        classification: sensitive
+        tags: ["audit", "system", "lineage"]
+        
+      _ingestion_date:
+        type: date
+        description: Date of ingestion into bronze layer
+        required: false
+        classification: sensitive
+        tags: ["audit", "system", "processing"]
+
+    # Table-level Quality Rules
+    quality:
+      - type: sql
+        description: Employee ID must be present for all records
+        query: |
+          SELECT COUNT(*) 
+          FROM {table} 
+          WHERE EMPLOYEE_ID IS NULL OR EMPLOYEE_ID = ''
+        mustBe: 0
+        
+      - type: sql
+        description: Legal first and last names must be present
+        query: |
+          SELECT COUNT(*) 
+          FROM {table} 
+          WHERE LEGAL_FIRST_NAME IS NULL OR LEGAL_FIRST_NAME = '' 
+             OR LEGAL_LAST_NAME IS NULL OR LEGAL_LAST_NAME = ''
+        mustBe: 0
+        
+      - type: sql
+        description: Contingent workers must have a contingent worker type
+        query: |
+          SELECT COUNT(*) 
+          FROM {table} 
+          WHERE IS_CONTINGENT_WORKER = TRUE 
+            AND (CONTINGENT_WORKER_TYPE IS NULL OR CONTINGENT_WORKER_TYPE = '')
+        mustBe: 0
+
+# Service Level Agreements
+servicelevels:
+  availability:
+    description: Data available 24/7 with maintenance windows
+    percentage: 99.5%
+    
+  retention:
+    description: Active employee data retained indefinitely, former employees for 7 years
+    period: P7Y
+    timestampField: TERMINATION_DATE
+    
+  latency:
+    description: Data available within 4 hours after source system update
+    threshold: 4h
+    sourceTimestampField: _processing_timestamp
+    
+  freshness:
+    description: Data refreshed daily with latest employee information
+    threshold: 24h
+    timestampField: _processing_timestamp
+    
+  frequency:
+    description: Data delivered once daily via automated pipeline
+    type: batch
+    interval: daily
+    cron: "0 9 * * *"
+
+# Data Provenance - Multiple RaaS Sources (Custom Extension)
+x-dataProvenance:
+  description: "Single logical dataset sourced from multiple RaaS feeds with data deduplication and conflict resolution"
+  physical_sources:
+    - source_id: "raas_hr_daily"
+      description: "Daily HR operational data feed"
+      priority: 1
+      schedule: "daily 06:00 UTC"
+      fields_subset: ["core_employment_data", "organizational_assignment", "employment_dates"]
+      data_scope: "active_employees_primary"
+    - source_id: "raas_demographics_weekly"  
+      description: "Weekly demographic and personal information feed"
+      priority: 2
+      schedule: "weekly sunday 08:00 UTC"
+      fields_subset: ["demographic_data", "personal_contact", "address_information"]
+      data_scope: "all_employees_comprehensive"
+    - source_id: "raas_compensation_monthly"
+      description: "Monthly compensation and benefits data feed" 
+      priority: 3
+      schedule: "monthly first day 10:00 UTC"
+      fields_subset: ["compensation_data", "benefits_information", "pay_classifications"]
+      data_scope: "active_employees_compensation"
+  deduplication_strategy:
+    primary_key: ["EMPLOYEE_ID"]
+    conflict_resolution: "priority_based_with_recency"
+    merge_logic: "latest_non_null_wins"
+    quality_checks: ["duplicate_detection", "data_completeness", "cross_feed_consistency"]
+
+# UARK Security Extension
+x-uark-security:
+  classification:
+    level: "highly sensitive"
+    justification: "Contains comprehensive employee PII including SSN, addresses, phone numbers, demographics, and compensation data"
+    
+  dataSubjects:
+    categories: ["employees", "faculty", "staff", "contractors"]
+    identifiers: ["EMPLOYEE_ID", "UNIVERSAL_ID", "SSN"]
+    
+  # Enhanced Config Table Structure for Cross-Contract Auditing
+  auditingFramework:
+    contract_registry:
+      table: "edh_config.data_contracts_registry"
+      columns: ["contract_id", "contract_name", "data_domain", "owner", "classification", "last_updated"]
+      
+    field_inventory:
+      table: "edh_config.contract_field_inventory" 
+      columns: ["contract_id", "field_name", "data_type", "classification", "pii_flag", "tags", "business_description"]
+      purpose: "Master inventory of all fields across all contracts for data governance"
+      
+    cross_contract_access:
+      table: "edh_config.cross_contract_group_access"
+      columns: ["group_name", "contract_id", "field_name", "access_level", "masking_rule", "business_justification", "approval_date", "approved_by"]
+      purpose: "Comprehensive view of what data each group accesses across all systems"
+      
+    pii_exposure_matrix:
+      table: "edh_config.pii_exposure_by_group"
+      columns: ["group_name", "pii_type", "contract_count", "field_count", "highest_access_level", "business_justifications"]
+      purpose: "Aggregated view of PII exposure across all contracts by security group"
+      
+    anomaly_detection:
+      table: "edh_config.access_anomalies"
+      columns: ["group_name", "anomaly_type", "description", "contracts_affected", "risk_level", "detection_date", "status"]
+      purpose: "Automated anomaly detection for unusual access patterns across contracts"
+      
+  piiInventory:
+    direct_identifiers:
+      - field: "SSN"
+        type: "social_security_number"
+        sensitivity: "high"
+        masking_required: true
+      - field: "EMPLOYEE_ID" 
+        type: "employee_identifier"
+        sensitivity: "high"
+        masking_required: true
+        
+    personal_attributes:
+      - field: "LEGAL_FIRST_NAME"
+        type: "first_name"
+        sensitivity: "high"
+      - field: "LEGAL_LAST_NAME"
+        type: "last_name" 
+        sensitivity: "high"
+      - field: "DOB"
+        type: "date_of_birth"
+        sensitivity: "high"
+        masking_required: true
+        
+    contact_information:
+      - field: "HOME_EMAIL"
+        type: "personal_email"
+        sensitivity: "high"
+        masking_required: true
+      - field: "HOME_PHONE"
+        type: "personal_phone"
+        sensitivity: "high"
+        masking_required: true
+      - field: "MOBILE_PHONE"
+        type: "mobile_phone"
+        sensitivity: "high" 
+        masking_required: true
+        
+    location_data:
+      - field: "HOME_ADDRESS_LINE1"
+        type: "home_address"
+        sensitivity: "high"
+        masking_required: true
+      - field: "HOME_ADDRESS_CITY"
+        type: "home_city"
+        sensitivity: "high"
+        masking_required: true
+        
+    financial_information:
+      - field: "TOTAL_BASE_PAY_ANNUALIZED"
+        type: "salary"
+        sensitivity: "high"
+        access_restricted: true
+        authorized_roles: ["hcm-employee-enhanced"]
+        
+  accessControl:
+    enforcement: "role_based_access_control"
+    authentication: "microsoft_entra_id"
+    
+    # Field-Level Access Matrix - For Config Table Generation
+    rolePermissions:
+      hcm-employee-summary:
+        purpose: "Organizational workforce analytics and reporting"
+        data_access_level: "aggregated_only"
+        individual_records: false
+        fields_included: []  # No individual record access - aggregated queries only
+        masking_level: "n/a"
+        pii_access: false
+        approval_required: false
+        business_justification: "Workforce planning and organizational analytics requiring statistical summaries only"
+        
+      hcm-employee-detailed:
+        purpose: "HR analytics with privacy protection for workforce management"
+        data_access_level: "individual_records_masked"
+        individual_records: true
+        # Complete field exclusions - these columns will not be present in views
+        fields_excluded: 
+          - "SSN"
+          - "DOB" 
+          - "HOME_EMAIL"
+          - "HOME_PHONE"
+          - "MOBILE_PHONE"
+          - "HOME_ADDRESS_LINE1"
+          - "HOME_ADDRESS_LINE2" 
+          - "HOME_ADDRESS_CITY"
+          - "HOME_ADDRESS_STATE"
+          - "HOME_ADDRESS_POSTAL_CODE"
+          - "HOME_ADDRESS_COUNTRY"
+        # Fields included with masking applied
+        fields_included:
+          - "EMPLOYEE_ID"  # masked: last_4_digits
+          - "UNIVERSAL_ID"  # masked: last_4_digits
+          - "MANAGER_EMPLOYEE_ID"  # masked: last_4_digits
+          - "MANAGERS_MANAGER_EMPLOYEE_ID"  # masked: last_4_digits
+          - "LEGAL_FIRST_NAME"
+          - "LEGAL_LAST_NAME"
+          - "WORK_EMAIL"  # included if not private
+          - "WORK_PHONE"  # included if not private
+          - "WORK_ADDRESS_*"
+          - "ORGANIZATION_*"
+          - "POSITION_*"
+          - "JOB_PROFILE_*"
+          - "IS_JOB_CLASS_*"
+          - "EMPLOYEE_TYPE"
+          - "STATUS"
+          - "HIRE_DATE"
+          - "FTE"
+          - "SCHEDULED_WEEKLY_HOURS"
+          - "IS_ETHNICITY_*"
+          - "GENDER"
+          - "FACULTY"
+          - "STAFF"
+          - "HAS_TENURE"
+        # Privacy flag handling
+        privacy_flag_behavior: "exclude_if_private"
+        masking_level: "moderate"
+        identifier_masking: "last_4_digits"
+        pii_access: "work_contact_only"
+        approval_required: true
+        business_justification: "HR operations requiring individual employee analysis with privacy protection"
+        
+      hcm-employee-enhanced:
+        purpose: "EEO compliance reporting and specialized HR functions"
+        data_access_level: "individual_records_enhanced"
+        individual_records: true
+        # Complete field exclusions
+        fields_excluded: 
+          - "DOB"  # complete redaction per requirements
+          - "HOME_EMAIL"
+          - "HOME_PHONE" 
+          - "MOBILE_PHONE"
+          - "HOME_ADDRESS_LINE1"
+          - "HOME_ADDRESS_LINE2"
+          - "HOME_ADDRESS_CITY" 
+          - "HOME_ADDRESS_STATE"
+          - "HOME_ADDRESS_POSTAL_CODE"
+          - "HOME_ADDRESS_COUNTRY"
+        # Fields included with enhanced access
+        fields_included:
+          - "SSN"  # masked: last_4_digits only
+          - "EMPLOYEE_ID"  # masked: last_4_digits
+          - "UNIVERSAL_ID"  # masked: last_4_digits
+          - "MANAGER_EMPLOYEE_ID"  # masked: last_4_digits
+          - "MANAGERS_MANAGER_EMPLOYEE_ID"  # masked: last_4_digits
+          - "LEGAL_*_NAME"
+          - "PREFERRED_*_NAME"
+          - "WORK_EMAIL"  # full access regardless of privacy flag
+          - "WORK_PHONE"  # full access regardless of privacy flag
+          - "WORK_ADDRESS_*"
+          - "ORGANIZATION_*"
+          - "POSITION_*"
+          - "JOB_PROFILE_*" 
+          - "IS_JOB_CLASS_*"
+          - "EMPLOYEE_TYPE"
+          - "STATUS"
+          - "HIRE_DATE"
+          - "TERMINATION_DATE"
+          - "FTE"
+          - "IS_ETHNICITY_*"
+          - "ETHNICITY"
+          - "GENDER"
+          - "PRIMARY_NATIONALITY"
+          - "FACULTY"
+          - "STAFF"
+          - "HAS_TENURE"
+          - "TOTAL_BASE_PAY_ANNUALIZED"  # for authorized compensation analysis
+        privacy_flag_behavior: "show_work_contact_ignore_privacy"
+        masking_level: "light"
+        identifier_masking: "last_4_digits"
+        ssn_access: "last_4_digits"
+        pii_access: "demographic_and_work_contact"
+        approval_required: true
+        business_justification: "EEO compliance reporting, diversity analytics, and authorized compensation analysis"
+        
+      datahub-general:
+        purpose: "Technical data pipeline operations"
+        data_access_level: "technical_operations"
+        individual_records: true
+        # Minimal field set for technical operations
+        fields_included:
+          - "EMPLOYEE_ID"  # hashed for technical tracking
+          - "EMPLOYEE_TYPE"
+          - "STATUS"
+          - "ORGANIZATION_NAME"
+          - "POSITION_TITLE"
+          - "HIRE_DATE"
+          - "TERMINATION_DATE"
+          - "IS_PRIMARY_JOB"
+          - "_processing_timestamp"
+          - "_source_file_name"
+          - "_ingestion_date"
+        fields_excluded: "all_pii_fields"
+        masking_level: "heavy"
+        identifier_masking: "hashed"
+        pii_access: false
+        approval_required: false
+        business_justification: "Data pipeline operations and basic technical monitoring"
+        
+      datahub-troubleshooting:
+        purpose: "Data quality diagnosis and pipeline troubleshooting"
+        data_access_level: "technical_debugging"
+        individual_records: true
+        # Enhanced technical access for debugging
+        fields_included:
+          - "SSN"  # masked: last_4_digits for debugging data quality issues
+          - "EMPLOYEE_ID"  # full access for technical debugging
+          - "UNIVERSAL_ID" 
+          - "MANAGER_EMPLOYEE_ID"
+          - "MANAGERS_MANAGER_EMPLOYEE_ID"
+          - "LEGAL_*_NAME"
+          - "WORK_EMAIL"  # full access regardless of privacy for debugging
+          - "HOME_EMAIL"  # full access regardless of privacy for debugging  
+          - "WORK_PHONE"  # full access regardless of privacy for debugging
+          - "HOME_PHONE"  # full access regardless of privacy for debugging
+          - "ORGANIZATION_*"
+          - "POSITION_*"
+          - "EMPLOYEE_TYPE"
+          - "STATUS"
+          - "HIRE_DATE"
+          - "TERMINATION_DATE"
+          - "_processing_timestamp"
+          - "_source_file_name" 
+          - "_ingestion_date"
+        fields_excluded: 
+          - "DOB"  # never needed for technical debugging
+          - "TOTAL_BASE_PAY_ANNUALIZED"  # not needed for technical debugging
+          - "HOURLY_RATE_AMOUNT"
+        privacy_flag_behavior: "ignore_privacy_for_debugging"
+        masking_level: "minimal"
+        identifier_masking: "none"
+        ssn_access: "last_4_digits"
+        pii_access: "contact_info_only"
+        approval_required: true
+        business_justification: "Data quality monitoring, pipeline troubleshooting, and technical issue diagnosis"
+        
+      UARK-staff:
+        purpose: "Public directory information for university staff directory"
+        data_access_level: "directory_information"
+        individual_records: true
+        record_filter: "STATUS = 'Active'"  # Active employees only
+        # University directory equivalent fields
+        fields_included:
+          - "LEGAL_FIRST_NAME"
+          - "LEGAL_LAST_NAME"
+          - "PREFERRED_FIRST_NAME"  # if available
+          - "PREFERRED_LAST_NAME"   # if available
+          - "WORK_EMAIL"  # only if not marked private
+          - "WORK_PHONE"  # only if not marked private
+          - "WORK_ADDRESS_*"  # work location information
+          - "ORGANIZATION_NAME"  # full organizational hierarchy
+          - "SUPERVISORY_ORGANIZATION_NAME"  # department hierarchy
+          - "POSITION_TITLE" 
+          - "JOB_PROFILE_NAME"
+          - "FACULTY"
+          - "STAFF"
+        fields_excluded: "all_personal_pii_fields"
+        privacy_flag_behavior: "respect_all_privacy_flags"
+        masking_level: "none"
+        pii_access: "work_directory_only"
+        approval_required: false
+        business_justification: "University staff directory and organizational contact information"
+    
+    # Masking Specifications for Pipeline Implementation
+    maskingRules:
+      identifier_masking:
+        last_4_digits:
+          pattern: "****{last_4}"
+          fields: ["EMPLOYEE_ID", "UNIVERSAL_ID", "MANAGER_EMPLOYEE_ID", "MANAGERS_MANAGER_EMPLOYEE_ID"]
+        hashed:
+          pattern: "SHA256_hash"
+          fields: ["EMPLOYEE_ID"]
+          
+      ssn_masking:
+        complete_redaction: 
+          pattern: null
+          apply_to: ["hcm-employee-summary", "hcm-employee-detailed", "datahub-general"]
+        last_4_digits:
+          pattern: "XXX-XX-{last_4}"
+          apply_to: ["hcm-employee-enhanced", "datahub-troubleshooting"]
+          
+      privacy_flag_masking:
+        exclude_if_private:
+          condition: "column_name + '_PRIVATE' = true"
+          action: "exclude_column"
+          apply_to: ["hcm-employee-detailed"]
+        show_if_not_private:
+          condition: "column_name + '_PRIVATE' = false OR column_name + '_PRIVATE' IS NULL"
+          action: "show_column"
+          apply_to: ["UARK-staff"]
+        ignore_privacy_for_debugging:
+          condition: "always_show"
+          action: "show_column" 
+          apply_to: ["datahub-troubleshooting", "hcm-employee-enhanced"]
+          
+    # Config Table Structure for Fabric Pipelines
+    pipelineConfiguration:
+      table_name: "workday_future_worker_demographics"
+      config_table_format:
+        group_permissions:
+          table: "edh_config.security_group_permissions"
+          columns: ["group_name", "purpose", "approval_required", "business_justification"]
+        field_access:
+          table: "edh_config.field_level_access"
+          columns: ["group_name", "field_name", "access_level", "masking_rule"]
+        masking_rules:
+          table: "edh_config.masking_specifications" 
+          columns: ["rule_name", "pattern", "applicable_fields", "applicable_groups"]
+        privacy_handling:
+          table: "edh_config.privacy_flag_rules"
+          columns: ["group_name", "privacy_behavior", "override_conditions"]
+          
+  retention:
+    schedule:
+      active_employees: "indefinite_while_employed"
+      former_employees: "P7Y"
+      student_employees: "P3Y"
+      
+    deletion_method: "secure_overwrite"
+    verification: "certificate_of_destruction"
+    
+    legal_hold:
+      override: "deletion_suspended_during_litigation"
+      authority: "general_counsel"
+
+  lineage:
+    upstream_systems:
+      - system_name: "Workday HCM"
+        integration_method: "RaaS"
+        frequency: "daily"
+        data_format: "json"
+        
+    downstream_consumers:
+      - consumer: "workforce_analytics_platform"
+        access_method: "database_connection"
+        data_scope: "masked_demographics_only"
+      - consumer: "eeo_compliance_reporting"
+        access_method: "secure_api"
+        data_scope: "statistical_aggregates_only"
+      - consumer: "hr_dashboard"
+        access_method: "power_bi_connection"
+        data_scope: "organizational_metrics_only"
+
+  implementation:
+    contract_metadata:
+      created_by: "Enterprise Data Hub Team"
+      created_date: "2025-08-26"
+      approved_by: "data_governance_committee"
+      approval_date: "pending"
+      next_review_date: "2026-02-26"
+      
+    deployment_checklist:
+      - task: "data_classification_completed"
+        status: "completed"
+      - task: "compliance_requirements_mapped"
+        status: "completed"
+      - task: "access_controls_configured"
+        status: "pending"
+      - task: "quality_monitoring_implemented"
+        status: "pending"
+      - task: "audit_logging_enabled"
+        status: "pending"
+      - task: "incident_response_documented"
+        status: "pending"
+      - task: "stakeholder_training_completed"
+        status: "pending"
+      - task: "go_live_testing_passed"
+        status: "pending"
