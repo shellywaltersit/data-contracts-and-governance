@@ -1,4 +1,4 @@
-# 📄 Data Contract Templates – EDH_PROD Lakehouse
+# 📄 Data Contract Templates
 
 ## 🎯 Purpose
 
