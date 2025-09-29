@@ -19,7 +19,7 @@ This curated list includes foundational articles, best practices, and tooling in
 
 ## 🛠️ Tooling & Implementation
 
-- dbt’s [Contract Enforcement Documentation](https://docs.getdbt.com/docs/build/data-contracts)  
+- dbt’s [Contract Enforcement Documentation](https://docs.getdbt.com/reference/resource-configs/contract#support) 
   Learn how to define and enforce contracts directly in dbt models.
 
 - [OpenMetadata](https://open-metadata.org/)  
