@@ -1,0 +1,43 @@
+# Linting rules for data contracts
+# These rules extend the base schema validation with organizational standards
+
+rules:
+  - id: model-name-format
+    description: "Model names must use only letters, numbers, underscores, or hyphens"
+    pattern: "^[a-zA-Z0-9_-]+$"
+    appliesTo: models
+    severity: error
+
+  - id: required-fields
+    description: "Each model must include type, title, description, and at least one field"
+    requiredKeys: ["type", "title", "description", "field"]
+    appliesTo: models
+    severity: error
+
+  - id: field-classification-valid
+    description: "Field classification must be one of: restricted, highly_sensitive, sensitive_internal, public"
+    allowedValues:
+      - restricted
+      - highly_sensitive
+      - sensitive_internal
+      - public
+    appliesTo: field.classification
+    severity: error
+
+  - id: field-quality-rule-naming
+    description: "Quality rule names must follow kebab-case and be reused from quality-rules.yaml"
+    pattern: "^[a-z0-9-]+$"
+    appliesTo: field.quality.name
+    severity: warning
+
+  - id: server-block-required-keys
+    description: "Each server must include catalog, schema, environment, location, and format"
+    requiredKeys: ["catalog", "schema", "environment", "location", "format"]
+    appliesTo: servers
+    severity: error
+
+  - id: x-layer-required
+    description: "Each model must declare x-layer (bronze, silver, gold)"
+    requiredKeys: ["x-layer"]
+    appliesTo: models
+    severity: warning

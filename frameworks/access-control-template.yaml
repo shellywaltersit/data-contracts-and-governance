@@ -1,0 +1,88 @@
+# Access control template for data contracts
+# Defines layer-based access patterns and domain-subdomain group structures
+
+accessControl:
+  bronze:
+    description: "Raw ingestion layer with restricted access for datahub teams"
+    accessModes:
+      - name: general
+        allowedGroups:
+          - datahub-general
+        access:
+          type: masked
+          exclusions: [ssn, student_id]
+        notes: "General day-to-day access with sensitive fields masked"
+      - name: troubleshooting
+        allowedGroups:
+          - datahub-troubleshooting
+        access:
+          type: full
+          exclusions: []
+        notes: "Elevated access for debugging and root cause analysis"
+    notes: |
+      Bronze access is limited to datahub teams only.
+      No external consumers or business users are permitted.
+
+  silver:
+    description: "Cleaned and modeled layer with domain-subdomain-tier access groups"
+    groupFormat: "{domain}-{subdomain}-{tier}"
+    tiers:
+      summary:
+        access: none
+        accessPolicy: "Summary-tier users must not see any sensitive fields"
+      detailed:
+        access: masked
+        accessPolicy: "Detailed-tier users may see masked sensitive fields if approved"
+      enhanced:
+        access: full
+        accessPolicy: |
+          Enhanced-tier users may see full sensitive fields if approved.
+          Some groups (e.g. finance-generalledger-enhanced) require managed device access.
+    domains:
+      finance:
+        executive: "Finance Data Executive"
+        subdomains:
+          generalledger:
+            stewardGroup: "General Ledger Data Steward Group"
+            securityGroups:
+              - finance-generalledger-summary
+              - finance-generalledger-detailed
+              - finance-generalledger-enhanced
+            accessPolicies:
+              - name: "Managed Device Requirement"
+                appliesTo: finance-generalledger-enhanced
+                description: "Users must access data from a managed device"
+      hcm:
+        executive: "HCM Data Executive"
+        subdomains:
+          worker:
+            stewardGroup: "Worker Data Steward Group"
+            securityGroups:
+              - hcm-worker-summary
+              - hcm-worker-detailed
+              - hcm-worker-enhanced
+
+generalRules:
+  - name: "Summary Tier Restriction"
+    appliesTo: silver
+    description: "Summary-tier groups must never see sensitive fields"
+  - name: "Tier Naming Convention"
+    description: "All security groups must follow the format {domain}-{subdomain}-{tier}"
+  - name: "Access Policy Declaration"
+    description: "Any enhanced-tier group with elevated access must declare an access control policy"
+
+handling:
+  strategies:
+    - name: mask
+      description: "Replace sensitive values with hashed or redacted versions"
+      appliesTo: ["PII", "FERPA", "HIPAA", "InternalSensitive"]
+    - name: nullify
+      description: "Remove sensitive values by setting them to null"
+      appliesTo: ["PII", "InternalSensitive"]
+    - name: exclude
+      description: "Drop sensitive fields entirely from downstream models"
+      appliesTo: ["PII", "FERPA", "COPPA", "HIPAA"]
+  defaultStrategy: exclude
+  notes: |
+    Handling strategies must be declared explicitly in each model's x-security block.
+    Use 'exclusions' to prevent propagation of sensitive fields.

@@ -1,0 +1,11 @@
+﻿rule_name,engine,implementation_logic,severity,notes
+non_null,sql,{field} IS NOT NULL,error,Used for required fields
+valid_email,regex,"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$",warning,RFC 5321-compliant
+valid_date_range,sql,{field} BETWEEN '2000-01-01' AND CURRENT_DATE,error,"Used for hire_date, birth_date"
+unique_primary_key,sql,COUNT(*) = COUNT(DISTINCT {field}),error,Applied to primary keys
+exclude_from_silver,metadata,field_excluded_in_layer('silver'),warning,Prevents propagation of sensitive fields
+pii_masking_required,metadata,field_requires_masking({field}),error,Used for restricted or highly_sensitive
+valid_ssn_format,regex,^\d{3}-\d{2}-\d{4}$,error,SSN format enforcement
+valid_student_id,regex,^U\d{8}$,warning,UA student ID format
+no_future_dates,sql,{field} <= CURRENT_DATE,error,"Used for birth_date, hire_date"
+valid_zip_code,regex,^\d{5}(-\d{4})?$,warning,US ZIP code format

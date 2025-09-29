@@ -1,0 +1,270 @@
+# Maps regulatory and institutional tags to descriptions and reference URLs
+# Supports contract tagging, rendering, and policy enforcement
+
+federalPolicies:
+  CJIS:
+    name: "Criminal Justice Information Services (CJIS)"
+    description: "FBI-managed framework for criminal justice data protection."
+    url: "https://www.fbi.gov/services/cjis"
+
+  CMMC:
+    name: "Cybersecurity Maturity Model Certification"
+    description: "DoD framework for contractor cybersecurity readiness."
+    url: "https://dodcio.defense.gov/CMMC/"
+
+  COPPA:
+    name: "Children’s Online Privacy Protection Act"
+    description: "Protects personal data of children under 13."
+    url: "https://www.ftc.gov/legal-library/browse/rules/childrens-online-privacy-protection-rule-coppa"
+
+  DFARS:
+    name: "Defense Federal Acquisition Regulation Supplement"
+    description: "Cybersecurity requirements for DoD contractors."
+    url: "https://www.acquisition.gov/dfars"
+
+  DOE_952_204_77:
+    name: "Department of Energy Clause 952.204-77"
+    description: "Controlled unclassified information handling."
+    url: "https://www.energy.gov/management/downloads/952204-77-unclassified-controlled-information"
+
+  EAR:
+    name: "Export Administration Regulation"
+    description: "Controls export of sensitive technologies."
+    url: "https://www.bis.doc.gov/index.php/regulations/export-administration-regulations-ear"
+
+  FAR_52_204_21:
+    name: "Federal Acquisition Regulation 52.204-21"
+    description: "Basic safeguarding of contractor information systems."
+    url: "https://www.acquisition.gov/far/part-52"
+
+  FedRAMP:
+    name: "Federal Risk and Authorization Management Program"
+    description: "Security assessment for cloud services used by federal agencies."
+    url: "https://www.fedramp.gov/"
+
+  FERPA:
+    name: "Family Educational Rights and Privacy Act"
+    description: "Protects the privacy of student education records."
+    url: "https://www2.ed.gov/policy/gen/guid/fpco/ferpa/index.html"
+
+  GLBA:
+    name: "Gramm-Leach-Bliley Act"
+    description: "Protects consumer financial data."
+    url: "https://www.ftc.gov/business-guidance/privacy-security/gramm-leach-bliley-act"
+
+  GDPR:
+    name: "General Data Protection Regulation"
+    description: "EU regulation protecting personal data and privacy."
+    url: "https://gdpr.eu/"
+
+  HIPAA:
+    name: "Health Insurance Portability and Accountability Act"
+    description: "Protects health information privacy and security."
+    url: "https://www.hhs.gov/hipaa/index.html"
+
+  HITECH:
+    name: "Health Information Technology for Economic and Clinical Health Act"
+    description: "Promotes secure electronic health records."
+    url: "https://www.hhs.gov/hipaa/for-professionals/special-topics/hitech-act-enforcement-interim-final-rule/index.html"
+
+  IL:
+    name: "Department of Defense Impact Level"
+    description: "Classification levels for DoD data environments."
+    url: "https://public.cyber.mil/dccs/"
+
+  ITAR:
+    name: "International Traffic in Arms Regulations"
+    description: "Controls export of defense-related articles and services."
+    url: "https://www.pmddtc.state.gov/ddtc_public?id=ddtc_kb_article_page&sys_id=8d7f9d5ddb3cd300d0a370131f9619f0"
+
+  NASA_1852_204_76:
+    name: "NASA Clause 1852.204-76"
+    description: "Unclassified security requirements for NASA contracts."
+    url: "https://www.nasa.gov/sites/default/files/atoms/files/nasa_far_supplement.pdf"
+
+  NIST_AI_RMF:
+    name: "NIST AI Risk Management Framework"
+    description: "Guidance for trustworthy AI systems (pending)."
+    url: "https://www.nist.gov/itl/ai-risk-management-framework"
+
+  NIST_CSF:
+    name: "NIST Cybersecurity Framework"
+    description: "Required by UA Board of Trustees; audited by Baker Tilly."
+    url: "https://www.nist.gov/cyberframework"
+
+  NIST_SP_1800_5:
+    name: "NIST SP 1800-5 IT Asset Management"
+    description: "Best practices for managing IT assets securely."
+    url: "https://www.nist.gov/publications/nist-special-publication-1800-5"
+
+  NIST_SP_800_53:
+    name: "NIST SP 800-53"
+    description: "Security and privacy controls for federal information systems."
+    url: "https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final"
+
+  NIST_SP_800_66:
+    name: "NIST SP 800-66"
+    description: "HIPAA Security Rule implementation guide."
+    url: "https://csrc.nist.gov/publications/detail/sp/800-66/rev-2/draft"
+
+  NIST_SP_800_171:
+    name: "NIST SP 800-171"
+    description: "Protecting controlled unclassified information (CUI)."
+    url: "https://csrc.nist.gov/publications/detail/sp/800-171/rev-2/final"
+
+  NIST_SP_800_172:
+    name: "NIST SP 800-172"
+    description: "Enhanced security for CUI environments."
+    url: "https://csrc.nist.gov/publications/detail/sp/800-172/final"
+
+  NSPM_33:
+    name: "National Security Presidential Memorandum 33"
+    description: "Guidance on foreign commitments and conflict of interest."
+    url: "https://www.whitehouse.gov/ostp/nspm33/"
+
+  PCI_DSS:
+    name: "Payment Card Industry Data Security Standard"
+    description: "Protects cardholder data and payment systems."
+    url: "https://www.pcisecuritystandards.org/"
+
+  PPRA:
+    name: "Protection of Pupil Rights Amendment"
+    description: "Governs student surveys and parental consent."
+    url: "https://studentprivacy.ed.gov/ppra"
+
+  SAIG:
+    name: "Student Aid Internet Gateway"
+    description: "Enrollment and data protection requirements for financial aid systems."
+    url: "https://fsapartners.ed.gov/knowledge-center/topics/saig-enrollment"
+
+  US_Privacy_Act:
+    name: "United States Privacy Act"
+    description: "Regulates federal agency handling of personal data."
+    url: "https://www.justice.gov/opcl/privacy-act-1974"
+
+statePolicies:
+  AR_ACCESS_Act:
+    name: "Acts 340 and 341 of 2025"
+    description: "Arkansas ACCESS Act for data transparency and accountability."
+    url: "https://www.arkleg.state.ar.us/"
+
+  AR_AI_Policy:
+    name: "Act 848 of 2025"
+    description: "Requires policies for AI and automated decision tools."
+    url: "https://www.arkleg.state.ar.us/"
+
+  AR_EDU_Domain_Requirement:
+    name: "Act 929 of 2025"
+    description: "Requires use of '.edu' domain for official university communications."
+    url: "https://www.arkleg.state.ar.us/"
+
+  AR_Personal_Info_Protection:
+    name: "Arkansas Personal Information Protection Act"
+    description: "Requires notification of security breaches involving personal information."
+    url: "https://law.justia.com/codes/arkansas/2023/title-4/chapter-110/section-4-110-104/"
+
+  AR_Security_Incident_Reporting:
+    name: "Act 260 of 2021"
+    description: "Requires reporting of security incidents to legislative auditors."
+    url: "https://www.arkleg.state.ar.us/Acts/FTPDocument?path=%2FACTS%2F2021R%2FPublic%2F&file=Act260.pdf&ddBienniumSession=2021%2F2021R"
+
+  AR_Spyware_Protection:
+    name: "Arkansas Consumer Protection Against Computer Spyware Act"
+    description: "Prohibits installation of spyware without user consent."
+    url: "https://law.justia.com/codes/arkansas/2020/title-4/chapter-111/"
+
+universityPolicies:
+  UA_Background_Checks:
+    name: "Policy 470.1 Background Checks"
+    description: "Covers use of criminal record, financial, and substance abuse testing in employment decisions and volunteer roles."
+    url: "https://uark.edu/policies/background-checks"
+
+  UA_Code_of_Computing:
+    name: "Policy 900.0 Code of Computing Practices"
+    description: "Defines acceptable use of computing resources for all university affiliates."
+    url: "https://uark.edu/policies/code-of-computing"
+
+  UA_Computing_Resources:
+    name: "Policy 901.0 Computing Resources Use and Allocation"
+    description: "Outlines allocation and usage guidelines for university computing resources."
+    url: "https://uark.edu/policies/computing-resources"
+
+  UA_Cybersecurity:
+    name: "Policy 285.1 Cybersecurity"
+    description: "Systemwide cybersecurity standards and responsibilities."
+    url: "https://uark.edu/policies/cybersecurity"
+
+  UA_Data_Classification:
+    name: "Policy 921.0 Data Classification"
+    description: "Defines restricted, highly sensitive, sensitive/internal, and public classifications."
+    url: "https://uark.edu/policies/data-classification"
+
+  UA_Data_Disposal:
+    name: "Policy 924.0 Data Disposal"
+    description: "Guidelines for secure disposal of university data."
+    url: "https://uark.edu/policies/data-disposal"
+
+  UA_Data_Management:
+    name: "Policy 922.0 Data Management, Use and Protection"
+    description: "Covers lifecycle management and protection of university data."
+    url: "https://uark.edu/policies/data-management"
+
+  UA_Data_Loss_Prevention:
+    name: "Policy 926.0 Data Loss Prevention"
+    description: "Outlines controls to prevent unauthorized data exfiltration."
+    url: "https://uark.edu/policies/data-loss-prevention"
+
+  UA_FERPA:
+    name: "Policy 515.1 Student Education Records"
+    description: "FERPA implementation at UA."
+    url: "https://uark.edu/policies/student-records"
+
+  UA_IT_Accessibility:
+    name: "Policy 280.1 Information Technology Accessibility"
+    description: "Website standards and accessibility compliance."
+    url: "https://uark.edu/policies/it-accessibility"
+
+  UA_IT_Services_Software:
+    name: "Policy 909.0 IT Services Supported Software"
+    description: "Approved software list for university systems."
+    url: "https://uark.edu/policies/supported-software"
+
+  UA_Info_Security_Exemption:
+    name: "Policy 913.0 Information Security Policy Exemption"
+    description: "Process for requesting exemptions from security policies."
+    url: "https://uark.edu/policies/security-exemption"
+
+  UA_Info_Security_Incident:
+    name: "Policy 911.0 Data Security Incident Response"
+    description: "Incident response procedures for data breaches and security events."
+    url: "https://uark.edu/policies/security-incident"
+
+  UA_Mobile_Device_Security:
+    name: "Policy 936.0 Mobile Device Security"
+    description: "Security requirements for mobile devices accessing university data."
+    url: "https://uark.edu/policies/mobile-security"
+
+  UA_Passwords:
+    name: "Policy 941.0 Secure Passwords and Passphrases"
+    description: "Standards for password complexity and management."
+    url: "https://uark.edu/policies/passwords"
+
+  UA_Privileged_Access:
+    name: "Policy 946.0 Privileged Access to Sensitive Data"
+    description: "Restrictions on administrator access to sensitive systems and data."
+    url: "https://uark.edu/policies/privileged-access"
+
+  UA_Supported_Backup:
+    name: "Policy 925.0 Backup and Recovery Systems"
+    description: "Requirements for data backup and recovery procedures."
+    url: "https://uark.edu/policies/backup-recovery"
+
+  UA_Virus_Reporting:
+    name: "Policy 933.0 Antivirus and Anti-Spyware Requirements"
+    description: "Mandates antivirus software and reporting of infections."
+    url: "https://uark.edu/policies/virus-reporting"
+
+  UA_Web_Accessibility:
+    name: "Policy 280.1 Website Standards and Accessibility"
+    description: "Accessibility standards for university websites."
+    url: "https://uark.edu/policies/web-accessibility"

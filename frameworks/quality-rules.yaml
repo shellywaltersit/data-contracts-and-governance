@@ -1,0 +1,41 @@
+# Reusable quality rules for data contracts
+# These rules can be referenced in the 'quality' block or per-field
+# Rules should be alphabetically ordered by name
+
+rules:
+  - name: exclude_from_silver
+    description: "Field must not propagate to silver layer"
+    engine: metadata
+    implementation: "field_excluded_in_layer('silver')"
+  
+  - name: non_null
+    description: "Field must not be null"
+    engine: sql
+    implementation: "SELECT COUNT(*) WHERE {field} IS NULL"
+
+  - name: pii_masking_required
+    description: "PII field must be masked before exposure"
+    engine: metadata
+    implementation: "field_requires_masking({field})"
+
+  - name: unique_primary_key
+    description: "Primary key must be unique within the dataset"
+    engine: sql
+    implementation: "SELECT COUNT(*) - COUNT(DISTINCT {field})"
+
+  - name: valid_date_range
+    description: "Date must be within acceptable range"
+    engine: sql
+    implementation: "hire_date BETWEEN '2000-01-01' AND CURRENT_DATE"
+  
+  - name: valid_email
+    description: "Field must match RFC 5321 email format"
+    engine: regex
+    implementation: "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+
+  
+
+  
+  
+
+  

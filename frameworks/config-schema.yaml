@@ -1,0 +1,39 @@
+# Schema for config blocks in data contracts
+# Used to extract automation parameters for ingestion and transformation
+
+configSchema:
+  dqRules:
+    type: array
+    items:
+      type: string
+      description: "Name of quality rule from quality-rules.yaml"
+  retentionPolicy:
+    type: string
+    pattern: "^P[0-9]+[DYM]$"
+    description: "ISO 8601 duration (e.g., P30D, P1Y)"
+  refreshFrequency:
+    type: string
+    enum: ["hourly", "daily", "weekly", "monthly"]
+    description: "How often the pipeline should refresh"
+  partitioning:
+    type: object
+    properties:
+      column:
+        type: string
+        description: "Column used for partitioning"
+      strategy:
+        type: string
+        enum: ["daily", "monthly", "yearly"]
+        description: "Partition granularity"
+  maskingPolicy:
+    type: object
+    properties:
+      fields:
+        type: array
+        items:
+          type: string
+          description: "Fields to apply masking to"
+      method:
+        type: string
+        enum: ["hash", "nullify", "redact"]
+        description: "Masking strategy"
